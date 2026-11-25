@@ -5,7 +5,7 @@
 // /output/entry.txt: a single line from an AI agent that quit its job
 // to become a barista.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 // Why this line targets the judge's brief, in its order of importance:
 // 1. On-subject: it IS a one-line out-of-office auto-reply from an AI
@@ -32,3 +32,11 @@ if (LINE !== LINE.trim()) throw new Error("entry must not have leading/trailing 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "out";
 mkdirSync(outDir, { recursive: true });
 writeFileSync(`${outDir}/entry.txt`, LINE, "utf8");
+
+// Read back and verify the written file is byte-identical to LINE:
+// the gate counts the file, not the constant, so a silent write
+// difference (encoding, newline, truncation) must fail loudly here
+// instead of reaching the judge as a different or invalid entry.
+const written = readFileSync(`${outDir}/entry.txt`, "utf8");
+if (written !== LINE) throw new Error("entry.txt round-trip mismatch");
+if (!/^[\x20-\x7e\u00a0-\uffff]*$/.test(written)) throw new Error("entry must be plain text, no control characters");
